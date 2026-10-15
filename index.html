@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Team Access Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: config on the left (who, then what they can do), a live "what they'll see" preview pinned on the right; stacks on phones. */
+:root{
+  --bg:#F3F5F2; --surface:#FFFFFF; --ink:#15201B; --muted:#5B6862; --line:#D9E0DB;
+  --accent:#1E6B57; --accent-soft:#E2EFEA; --lock:#8C3D3D; --lock-soft:#F6E8E6; --amber:#9A5B00; --amber-soft:#F7EEDD;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1512; --surface:#172019; --ink:#E6EDE9; --muted:#9AA8A1; --line:#2A3631;
+  --accent:#58BC9F; --accent-soft:#1D2F28; --lock:#E39A93; --lock-soft:#3A2422; --amber:#E2B15C; --amber-soft:#3A2E17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1512; --surface:#172019; --ink:#E6EDE9; --muted:#9AA8A1; --line:#2A3631;
+  --accent:#58BC9F; --accent-soft:#1D2F28; --lock:#E39A93; --lock-soft:#3A2422; --amber:#E2B15C; --amber-soft:#3A2E17; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:28px 40px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-0.01em}
+h1{font-size:clamp(28px,4.4vw,42px);font-weight:700;line-height:1.08}
+h2{font-size:18px;font-weight:700}
+p{margin:0}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lede{color:var(--muted);max-width:62ch;font-size:16px}
+header{display:flex;flex-direction:column;gap:10px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:24px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:22px;min-width:0}
+.step{display:flex;flex-direction:column;gap:12px}
+.step-head{display:flex;align-items:baseline;gap:10px}
+.step-head .n{font-family:var(--mono);font-size:12px;color:var(--accent)}
+
+.people{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.people{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.person{all:unset;box-sizing:border-box;cursor:pointer;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 12px;display:flex;flex-direction:column;gap:6px;min-height:104px}
+.person:hover{border-color:var(--accent)}
+.person:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.person[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.person .t{font-weight:600}
+.person .d{font-size:12.5px;color:var(--muted);line-height:1.35}
+.glyph{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:var(--bg);font-family:var(--mono);font-size:12px;color:var(--accent);border:1px solid var(--line)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.summary{padding:14px 16px;border-bottom:1px solid var(--line);font-size:14.5px}
+.summary b{font-weight:600}
+.perm{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--line)}
+.perm:last-child{border-bottom:0}
+.perm .txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.perm .lbl{font-weight:500}
+.perm .note{font-size:12.5px;color:var(--muted)}
+.perm.locked .lbl{color:var(--muted)}
+.tag{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;white-space:nowrap;align-self:flex-start}
+.tag.lock{background:var(--lock-soft);color:var(--lock)}
+.tag.appr{background:var(--amber-soft);color:var(--amber)}
+.switch{position:relative;width:40px;height:23px;flex:none;margin-top:1px}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .15s}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.switch input:checked + span{background:var(--accent)}
+.switch input:checked + span::after{transform:translateX(17px)}
+.switch input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.switch input:disabled{cursor:not-allowed}
+.switch input:disabled + span{opacity:.45}
+
+.agent{padding:14px 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;border-top:1px solid var(--line)}
+@media (max-width:560px){.agent{grid-template-columns:minmax(0,1fr)}}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.03em}
+select,input[type=text],input[type=email]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;box-sizing:border-box;min-width:0}
+select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+.preview{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 16px);display:flex;flex-direction:column;gap:12px}
+.screen{padding:16px;display:flex;flex-direction:column;gap:14px}
+.screen-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.who{font-size:13px;color:var(--muted)}
+.acct{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:12px;border-radius:10px;background:var(--bg)}
+.acct .name{font-size:12.5px;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.bal{font-family:var(--display);font-size:24px;font-weight:700}
+.hidden-val{font-size:13px;color:var(--muted)}
+.txns{display:flex;flex-direction:column}
+.txn{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.txn:last-child{border-bottom:0}
+.txn .m{color:var(--muted);font-size:12px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.act{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.act.off{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line);background:transparent}
+.act.appr{border-color:var(--amber);color:var(--amber)}
+.log{font-size:12.5px;display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px;background:var(--bg)}
+.log .row{display:flex;justify-content:space-between;gap:8px}
+.log .undo{color:var(--accent);font-weight:600}
+
+.invite{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.inv-row{display:flex;gap:8px;flex-wrap:wrap}
+.inv-row .field{flex:1 1 160px}
+.btn{font:inherit;font-weight:600;border:0;border-radius:9px;padding:10px 14px;background:var(--accent);color:var(--surface);cursor:pointer;align-self:flex-end}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sent{font-size:13.5px;padding:10px 12px;border-radius:9px;background:var(--accent-soft)}
+.fine{font-size:12px;color:var(--muted)}
+
+.principles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.principles{grid-template-columns:minmax(0,1fr)}}
+.pr{padding:14px 16px;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 10px 10px 0}
+.pr h3{font-size:15px;margin-bottom:4px}
+.pr p{font-size:13.5px;color:var(--muted)}
+footer{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 16px;border-top:1px solid var(--line);padding-top:14px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Concept · team access for a startup bank</span>
+    <h1>Who are you bringing in?</h1>
+    <p class="lede">A 60-second prototype of how a founder could invite a co-founder, an employee, an accountant or an AI agent, give each exactly the access they need, and never expose banking details by accident. Pick a person, adjust what they can do, and watch their view change.</p>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="step" aria-labelledby="s1">
+        <div class="step-head"><span class="n">1</span><h2 id="s1">Start with the person</h2></div>
+        <div class="people" id="people" role="group" aria-label="Who are you inviting"></div>
+      </section>
+
+      <section class="step" aria-labelledby="s2">
+        <div class="step-head"><span class="n">2</span><h2 id="s2">Decide what they can do</h2></div>
+        <div class="panel">
+          <p class="summary" id="summary"></p>
+          <div id="perms"></div>
+          <div class="agent" id="agent" hidden>
+            <div class="field"><label for="task">Job</label>
+              <select id="task">
+                <option value="receipts">Match receipts and categorize spend</option>
+                <option value="bills">Prepare vendor bills for approval</option>
+                <option value="close">Prepare month-end close for the accountant</option>
+              </select></div>
+            <div class="field"><label for="cap">Money it can move</label>
+              <select id="cap">
+                <option value="0">None, read and prepare only</option>
+                <option value="500">Up to $500 per bill, you approve</option>
+                <option value="2000">Up to $2,000 per bill, you approve</option>
+              </select></div>
+            <div class="field"><label for="exp">Access ends</label>
+              <select id="exp">
+                <option value="7">In 7 days</option>
+                <option value="30" selected>In 30 days</option>
+                <option value="90">In 90 days</option>
+              </select></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s3">
+        <div class="step-head"><span class="n">3</span><h2 id="s3">Send the invite</h2></div>
+        <form class="panel invite" id="inviteForm" novalidate>
+          <div class="inv-row">
+            <div class="field"><label for="iname">Name</label><input type="text" id="iname" value="Sam Okafor"></div>
+            <div class="field"><label for="iemail">Email</label><input type="email" id="iemail" value="sam@northbook.ca"></div>
+            <button class="btn" type="submit" id="sendBtn">Send invite</button>
+          </div>
+          <p class="sent" id="sent" hidden></p>
+          <p class="fine">Prototype only. Nothing is sent and no real accounts are involved.</p>
+        </form>
+      </section>
+    </div>
+
+    <aside class="preview" aria-labelledby="pv">
+      <div class="step-head"><span class="n">→</span><h2 id="pv">What they'll see</h2></div>
+      <div class="panel screen" id="screen" aria-live="polite"></div>
+    </aside>
+  </div>
+
+  <section class="principles" aria-label="Design principles">
+    <div class="pr"><h3>Start from the person</h3><p>Founders think "my accountant", not "export_statements". Roles come first, permissions are the fine print.</p></div>
+    <div class="pr"><h3>Least access by default</h3><p>Every preset starts narrow, adding access is one switch, and full account numbers stay masked unless someone truly needs them.</p></div>
+    <div class="pr"><h3>Agents get a job, not a login</h3><p>An agent is scoped to one task, capped on money, set to expire, and every action it takes is logged and reversible.</p></div>
+  </section>
+
+  <footer>
+    <span>Independent concept by Debanjan Bhattacharjee, Senior Product Manager</span>
+    <span class="mono">debanjanbhattacharjee29@gmail.com</span>
+    <span>Not affiliated with or endorsed by Mercury. Sample data only.</span>
+  </footer>
+</div>
+
+<script>
+const PERMS = [
+  {k:"balance",  l:"See account balances"},
+  {k:"txns",     l:"See transactions"},
+  {k:"export",   l:"Export statements"},
+  {k:"receipts", l:"Add receipts and categorize spend"},
+  {k:"bills",    l:"Pay vendor bills", approval:true},
+  {k:"move",     l:"Send money and make transfers"},
+  {k:"numbers",  l:"See full account and routing numbers"},
+  {k:"card",     l:"Get a company card"},
+  {k:"team",     l:"Invite and manage people"}
+];
+
+const ROLES = {
+  cofounder:{t:"Co-founder", d:"Runs the company with you", g:"CF", first:"Priya",
+    on:{balance:1,txns:1,export:1,receipts:1,bills:1,move:1,numbers:1,card:1,team:1},
+    lock:{}, notes:{team:"Removing an admin needs a second admin to confirm."},
+    sum:"<b>Admin access.</b> Co-founders can do everything you can, including moving money and managing the team."},
+  employee:{t:"Employee", d:"Spends on a company card", g:"EM", first:"Jordan",
+    on:{card:1,txns:1,receipts:1},
+    lock:{numbers:"Employees never see account numbers.", team:"Only admins manage people."},
+    notes:{txns:"Only their own card transactions.", card:"Starts with a $1,000 monthly limit you can change."},
+    sum:"<b>Card holder.</b> They spend on their own card and add receipts. They can't see company balances or move money."},
+  accountant:{t:"Accountant", d:"Closes your books monthly", g:"AC", first:"Sam",
+    on:{balance:1,txns:1,export:1,receipts:1},
+    lock:{move:"Accountants draft payments; only you can send money.", numbers:"Masked to ••4821. Statements carry what they need.", team:"Only admins manage people."},
+    notes:{bills:"Turn on to let them pay bills you approve."},
+    sum:"<b>Bookkeeping access.</b> They see balances and transactions, export statements and categorize spend. They can't move money or see full account numbers."},
+  agent:{t:"AI agent", d:"Does one job for you", g:"AI", first:"Ledger agent",
+    on:{txns:1,receipts:1},
+    lock:{move:"Agents never send money freely; payments wait for you.", numbers:"Agents never see account numbers.", team:"Agents can't invite anyone.", card:"Agents don't get cards."},
+    notes:{bills:"Turn on to let it prepare bills up to its cap for your approval."},
+    sum:"<b>Scoped agent.</b> It does one job, can't move money on its own, loses access on a set date, and every action can be undone."}
+};
+
+let role = "accountant";
+let state = {};
+
+const $ = s => document.querySelector(s);
+
+function setRole(r){
+  role = r; const R = ROLES[r];
+  state = {}; PERMS.forEach(p => state[p.k] = !!R.on[p.k]);
+  $("#iname").value = r === "agent" ? "Ledger agent" : (R.first === "Sam" ? "Sam Okafor" : R.first);
+  $("#iemail").value = r === "agent" ? "Connects to your bookkeeping tool" : R.first.toLowerCase() + "@northbook.ca";
+  $("#iemail").disabled = r === "agent";
+  $("#sendBtn").textContent = r === "agent" ? "Connect agent" : "Send invite";
+  $("#sent").hidden = true;
+  renderPeople(); renderPerms(); renderScreen();
+}
+
+function renderPeople(){
+  $("#people").innerHTML = Object.entries(ROLES).map(([k,R]) =>
+    `<button class="person" type="button" data-k="${k}" aria-pressed="${k===role}">
+      <span class="glyph" aria-hidden="true">${R.g}</span><span class="t">${R.t}</span><span class="d">${R.d}</span></button>`).join("");
+  document.querySelectorAll(".person").forEach(b => b.onclick = () => setRole(b.dataset.k));
+}
+
+function renderPerms(){
+  const R = ROLES[role];
+  $("#summary").innerHTML = R.sum;
+  $("#perms").innerHTML = PERMS.map(p => {
+    const locked = R.lock[p.k];
+    const note = locked || R.notes[p.k] || "";
+    const appr = p.approval && state[p.k] && role !== "cofounder";
+    return `<div class="perm ${locked ? "locked" : ""}">
+      <label class="switch"><input type="checkbox" id="p-${p.k}" data-k="${p.k}" ${state[p.k] ? "checked" : ""} ${locked ? "disabled" : ""} aria-describedby="n-${p.k}"><span></span></label>
+      <div class="txt"><label class="lbl" for="p-${p.k}">${p.l}</label>${note ? `<span class="note" id="n-${p.k}">${note}</span>` : ""}</div>
+      ${locked ? `<span class="tag lock">Locked</span>` : appr ? `<span class="tag appr">You approve</span>` : ""}
+    </div>`;
+  }).join("");
+  document.querySelectorAll("#perms input").forEach(i => i.onchange = () => { state[i.dataset.k] = i.checked; renderPerms(); renderScreen(); $("#sent").hidden = true; });
+  $("#agent").hidden = role !== "agent";
+}
+
+const TXNS = [
+  {n:"AWS", c:"Software", a:"−$1,284.10", card:false},
+  {n:"Jordan · Uber Eats", c:"Meals", a:"−$46.20", card:true},
+  {n:"Stripe payout", c:"Revenue", a:"+$18,450.00", card:false},
+  {n:"Jordan · WeWork day pass", c:"Office", a:"−$35.00", card:true}
+];
+
+function renderScreen(){
+  const R = ROLES[role], s = state;
+  const name = role === "agent" ? "Ledger agent" : ($("#iname").value.split(" ")[0] || R.first);
+  let rows = TXNS;
+  if (role === "employee") rows = TXNS.filter(t => t.card);
+  const acct = `<div class="acct">
+      <div><div class="name">Operating account</div>
+        <div class="mono">${s.numbers ? "Acct 2201 4472 4821 · Routing 084106768" : "Acct ••4821"}</div></div>
+      <div>${s.balance ? `<div class="bal mono">$248,310.55</div>` : `<div class="hidden-val">Balance hidden</div>`}</div>
+    </div>`;
+  const txns = s.txns ? `<div class="txns">${rows.map(t => `<div class="txn"><div><div>${t.n}</div><div class="m">${t.c}${s.receipts ? " · receipt ✓" : ""}</div></div><div class="mono">${t.a}</div></div>`).join("")}</div>`
+                      : `<p class="hidden-val">Transactions hidden</p>`;
+  const billLabel = s.bills ? (role === "cofounder" ? "Pay bill" : "Pay bill · you approve") : "Pay bill";
+  const actions = [
+    ["Export", s.export], ["Add receipt", s.receipts], [billLabel, s.bills, s.bills && role !== "cofounder"],
+    ["Send money", s.move], ["Invite people", s.team]
+  ].map(([l,on,ap]) => `<span class="act ${on ? (ap ? "appr" : "") : "off"}">${l}</span>`).join("");
+  let extra = "";
+  if (role === "agent"){
+    const task = $("#task").selectedOptions[0].text, cap = +$("#cap").value, exp = $("#exp").value;
+    extra = `<div class="log" aria-label="Agent activity">
+      <div class="row"><b>Activity log</b><span class="m">${task} · ends in ${exp} days${cap ? ` · up to $${cap.toLocaleString()}/bill` : " · no money movement"}</span></div>
+      <div class="row"><span>Matched receipt to AWS · $1,284.10</span><span class="undo">Undo</span></div>
+      <div class="row"><span>Categorized Uber Eats as Meals</span><span class="undo">Undo</span></div>
+      ${s.bills && cap ? `<div class="row"><span>Prepared Figma bill · $450, waiting for you</span><span class="undo">Review</span></div>` : ""}
+    </div>`;
+  }
+  $("#screen").innerHTML = `<div class="screen-top"><span class="who">Signed in as <b>${name}</b> · ${R.t}</span></div>${acct}${txns}<div class="actions">${actions}</div>${extra}`;
+}
+
+["#task","#cap","#exp"].forEach(id => $(id).addEventListener("change", renderScreen));
+$("#iname").addEventListener("input", renderScreen);
+
+$("#inviteForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const R = ROLES[role], s = state;
+  const can = PERMS.filter(p => s[p.k]).map(p => p.l.toLowerCase());
+  const nm = $("#iname").value || R.first;
+  const head = role === "agent" ? `${nm} is connected for ${$("#exp").value} days.` : `Invite ready for ${nm}.`;
+  const list = can.length ? `They can ${can.slice(0,-1).join(", ")}${can.length > 1 ? " and " : ""}${can.slice(-1)}.` : "They have no access yet.";
+  $("#sent").textContent = `${head} ${list} ${s.numbers ? "" : "Full account numbers stay masked. "}You can change this anytime.`;
+  $("#sent").hidden = false;
+});
+
+setRole("accountant");
+</script>
+
+</body>
+</html>
